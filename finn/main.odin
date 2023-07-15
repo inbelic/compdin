@@ -28,10 +28,10 @@ main :: proc() {
     }
 
     // Loop through the input file 1 page at a time
-    buf: [4096]u8 // Read pagewise
+    page: [4096]u8 // Read pagewise
     bytes_read, bytes_written: int
     for {
-        bytes_read, in_err = os.read(in_hdl, buf[:])
+        bytes_read, in_err = os.read(in_hdl, page[:])
         if in_err != os.ERROR_NONE {
             fmt.eprintln("error reading from input file:", in_err)
             break
@@ -39,8 +39,12 @@ main :: proc() {
         if bytes_read == 0 { break }
 
         // Any compression will be placed here
+        head_block := create_blocks(&page, bytes_read)
+        defer free_blocks(head_block)
 
-        bytes_written, out_err = os.write(out_hdl, buf[:bytes_read])
+        print_blocks(head_block)
+
+        bytes_written, out_err = os.write(out_hdl, page[:bytes_read])
         if out_err != os.ERROR_NONE || bytes_written == 0 {
             fmt.eprintln("error writing to output file:", out_err)
             break
