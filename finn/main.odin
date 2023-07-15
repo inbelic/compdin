@@ -43,6 +43,11 @@ main :: proc() {
         defer free_blocks(head_block)
 
         print_blocks(head_block)
+        emitter := Emitter{}
+        emitter.ok = true
+
+        emit_blocks(&emitter, head_block)
+        fmt.println(emitter.ok, emitter.buf[:emitter.posn])
 
         bytes_written, out_err = os.write(out_hdl, page[:bytes_read])
         if out_err != os.ERROR_NONE || bytes_written == 0 {
