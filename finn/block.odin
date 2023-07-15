@@ -58,6 +58,32 @@ free_blocks :: proc(block: ^Block) {
     free(block)
 }
 
+// assumes that the arrays are equal length
+equal_bytes :: proc(bytes: []u8, o_bytes: []u8) -> bool {
+    for byte, i in bytes {
+        if byte != o_bytes[i] { return false }
+    }
+    return true
+}
+
+// recursively check that the blocks are equivalent in values
+equal_blocks :: proc(block: ^Block, o_block: ^Block) -> bool {
+    if block.hdr != o_block.hdr { return false }
+
+    count := block.hdr.count
+    if !equal_bytes(block.bytes[:count], o_block.bytes[:count]) { return false }
+
+    // if both point to same underlying block then the rest is equal
+    // (includes both == nil)
+    if block.next == o_block.next { return true }
+
+    // otherwise, guard against invalid references
+    if block.next == nil { return false }
+    if o_block.next == nil { return false }
+
+    return equal_blocks(block.next, o_block.next)
+}
+
 // create_blocks will iterate through the page of bytes and create a linked
 // list of the blocks that represent the data as differenced with the root
 // of each block. Currently, it uses a static range of 16 so that the

@@ -8,7 +8,7 @@ Emitter :: struct {
     posn: int,              // current position of buf
     rem: u8,                // the remainder of the previous byte emitted (most-significant stored)
     used: u8,               // how many bits the remainder contains (from most-significant bit)
-    ok: bool,             // denotes if we ran out of space to emit bytes in
+    ok: bool,               // denotes if we ran out of space to emit bytes in
 }
 
 // byte is assumed to be stored in least-significant bit order and bits denotes
@@ -68,7 +68,6 @@ emit_header :: proc(emitter: ^Emitter, hdr: Header) {
 emit_blocks :: proc(emitter: ^Emitter, block: ^Block) -> ^Block {
     if block == nil {
         emitter.buf[emitter.posn] = emitter.rem
-        emitter.posn += 1
         return nil
     }
 

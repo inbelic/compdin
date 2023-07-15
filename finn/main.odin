@@ -41,13 +41,20 @@ main :: proc() {
         // Any compression will be placed here
         head_block := create_blocks(&page, bytes_read)
         defer free_blocks(head_block)
-
         print_blocks(head_block)
+
         emitter := Emitter{}
         emitter.ok = true
 
         emit_blocks(&emitter, head_block)
         fmt.println(emitter.ok, emitter.buf[:emitter.posn])
+
+        consumer := Consumer{emitter.buf, emitter.posn, emitter.used, 0, 0, true}
+        o_head_block := consume_blocks(&consumer)
+        defer free_blocks(o_head_block)
+        print_blocks(o_head_block)
+
+        fmt.println(equal_blocks(head_block, o_head_block))
 
         bytes_written, out_err = os.write(out_hdl, page[:bytes_read])
         if out_err != os.ERROR_NONE || bytes_written == 0 {
