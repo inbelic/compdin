@@ -1,0 +1,8 @@
+# ignore any compressed files
+*.fcf
+
+# ignore any testing input files
+*.txt
+
+# ignore produced executable
+finn
