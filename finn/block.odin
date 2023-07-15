@@ -154,3 +154,33 @@ create_blocks :: proc(page: ^[4096]u8, size: int, posn := 0, prev : ^Block = nil
     // recurse to the next block
     return create_blocks(page, size, posn + int(w_posn), block)
 }
+
+// output_blocks will recursively go through all the blocks and fill the page
+// with the original bytes, it will return the final position that it wrote
+// to (size) and will return the last block it was able to write out.
+// if the returned block is nil then all blocks were output, otherwise, the
+// caller must allocate a new page to continue writing to
+output_blocks :: proc(page: ^[4096]u8, block: ^Block, start_posn := 0) -> (int, ^Block) {
+    posn := start_posn
+
+    // end of blocks
+    if block == nil { return posn, nil }
+
+    // if not enough space to store remaining blocks so return the block for
+    // further output on the next page
+    _, req_size := size_block(block^)
+    if 4095 < posn + req_size { return posn, block }
+
+    // account for a single stored bit
+    if block.hdr.bits == 0 {
+        page[posn] = block.hdr.root
+        posn += 1
+        return output_blocks(page, block.next, posn)
+    }
+
+    for byte in block.bytes[:block.hdr.count] {
+        page[posn] = byte + block.hdr.root
+        posn += 1
+    }
+    return output_blocks(page, block.next, posn)
+}

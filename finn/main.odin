@@ -56,6 +56,8 @@ main :: proc() {
 
         fmt.println(equal_blocks(head_block, o_head_block))
 
+        bytes_read, _ = output_blocks(&page, o_head_block)
+
         bytes_written, out_err = os.write(out_hdl, page[:bytes_read])
         if out_err != os.ERROR_NONE || bytes_written == 0 {
             fmt.eprintln("error writing to output file:", out_err)

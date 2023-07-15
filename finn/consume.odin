@@ -80,7 +80,7 @@ consume_header :: proc(consumer: ^Consumer) -> (hdr: Header) {
 }
 
 consume_blocks :: proc(consumer: ^Consumer, prev: ^Block = nil) -> ^Block {
-    if consumer.size == consumer.posn {
+    if consumer.size == consumer.posn && consumer.extra == consumer.used {
         return reverse_blocks(prev) // reverse the order of the blocks as they were stored in reverse
     }
   
