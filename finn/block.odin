@@ -31,6 +31,13 @@ size_block :: proc(block: Block) -> (int, int) {
     return hdr_size + byte_size * num_bytes, orig_size
 }
 
+// append the next block to the end of block
+// assume that block != nil
+append_blocks :: proc(block: ^Block, next: ^Block) {
+    if block.next != nil { append_blocks(block.next, next) }
+    else { block.next = next }
+}
+
 // recursively reverse the order of the linked list of blocks
 reverse_blocks :: proc(block: ^Block, next: ^Block = nil) -> ^Block {
     prev := block.next
@@ -171,7 +178,7 @@ output_blocks :: proc(page: ^[4096]u8, block: ^Block, start_posn := 0) -> (int, 
     _, req_size := size_block(block^)
     if 4095 < posn + req_size { return posn, block }
 
-    // account for a single stored bit
+    // account for a single stored root
     if block.hdr.bits == 0 {
         page[posn] = block.hdr.root
         posn += 1
