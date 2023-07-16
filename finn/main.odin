@@ -49,7 +49,7 @@ main :: proc() {
         emit_blocks(&emitter, head_block)
         fmt.println(emitter.ok, emitter.buf[:emitter.posn])
 
-        consumer := Consumer{emitter.buf, emitter.posn, emitter.used, 0, 0, true}
+        consumer := Consumer{emitter.buf, emitter.posn, 0, 0, true}
         o_head_block := consume_blocks(&consumer)
         defer free_blocks(o_head_block)
         print_blocks(o_head_block)

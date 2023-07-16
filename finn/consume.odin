@@ -6,7 +6,6 @@ package compress
 Consumer :: struct {
     buf: [4096]u8,          // buffer sequence to consume from
     size: int,              // number of bytes in the buf
-    extra: u8,              // number of overflow bits into last byte
     posn: int,              // current position of buf
     used: u8,               // amount of bits consumed from current byte
     ok: bool,               // denotes if we ran out of bytes to consume
@@ -80,7 +79,7 @@ consume_header :: proc(consumer: ^Consumer) -> (hdr: Header) {
 }
 
 consume_blocks :: proc(consumer: ^Consumer, prev: ^Block = nil) -> ^Block {
-    if consumer.size == consumer.posn && consumer.extra == consumer.used {
+    if consumer.size - 1 == consumer.posn {
         return reverse_blocks(prev) // reverse the order of the blocks as they were stored in reverse
     }
   
