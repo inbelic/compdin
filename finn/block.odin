@@ -8,7 +8,7 @@ import fmt "core:fmt"
 
 Header :: struct {
     bits: u8,       // bits is a u8 between the range of [0, 3] (represents 1/2 * the number of bits) (2 bits)
-    count: u8,      // count is a u8 between the range of [0, MAX_COUNT] (6 bits)
+    count: u8,      // count is a u8 between the range of [0, MAX_COUNT) (6 bits)
     root: u8,       // root is a u8 (8 bits)
 } // Outputted size is 2 + 6 + 8 = 16 bits
 
@@ -31,6 +31,13 @@ size_block :: proc(block: Block) -> (int, int) {
     return hdr_size + byte_size * num_bytes, orig_size
 }
 
+size_blocks :: proc(block: ^Block) -> (int, int) {
+    if block == nil { return 0, 0 }
+    next_hdr, next_orig := size_blocks(block.next)
+    our_hdr, our_orig := size_block(block^)
+    return our_hdr + next_hdr, our_orig + next_orig
+}
+
 // append the next block to the end of block
 // assume that block != nil
 append_blocks :: proc(block: ^Block, next: ^Block) {
@@ -40,6 +47,8 @@ append_blocks :: proc(block: ^Block, next: ^Block) {
 
 // recursively reverse the order of the linked list of blocks
 reverse_blocks :: proc(block: ^Block, next: ^Block = nil) -> ^Block {
+    if block == nil { return nil }
+
     prev := block.next
     block.next = next
     if prev == nil {

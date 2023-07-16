@@ -66,10 +66,7 @@ emit_header :: proc(emitter: ^Emitter, hdr: Header) {
 
 // recursively emit the chain of blocks
 emit_blocks :: proc(emitter: ^Emitter, block: ^Block) -> ^Block {
-    if block == nil {
-        emitter.buf[emitter.posn] = emitter.rem
-        return nil
-    }
+    if block == nil { return nil }
 
     // we may not have enough space in the emitter to emit the entire block,
     // so we will record the current emitter state to rollback to if we need
