@@ -53,7 +53,7 @@ emitter_main :: proc(in_hdl: os.Handle, out_hdl: os.Handle) {
     emitter := Emitter{}
 
     // keep track of the expected bits written/read
-    ttl_hdr, ttl_bits: int
+    ttl_in, ttl_out: int
 
     // loop through the input file 1 page at a time
     page: [4096]u8 // Read pagewise
@@ -66,16 +66,13 @@ emitter_main :: proc(in_hdl: os.Handle, out_hdl: os.Handle) {
             break
         }
         if bytes_read == 0 { break }
+        ttl_in += bytes_read
 
         // create our block structure
         block = create_blocks(&page, bytes_read)
 
-        t_hdr, _ := size_blocks(block)
-        ttl_hdr += t_hdr
-
         // then we can repeatedly emit our block structure until it is
         // all output
-        t_bits := 0
         for {
             // reinit the emitter
             emitter.posn = 0
@@ -85,19 +82,19 @@ emitter_main :: proc(in_hdl: os.Handle, out_hdl: os.Handle) {
             // remaining block to be output
             block = emit_blocks(&emitter, block)
             ok := write_emitter(out_hdl, &emitter)
+            ttl_out += emitter.posn
             if !ok { return }
-            t_bits += 8 * emitter.posn
             if block == nil { break }
         }
-        ttl_bits += t_bits
     }
-    ttl_bits += int(emitter.used)
     // include the possibly partially filled last bit
     emitter.buf[0] = emitter.rem
     emitter.posn = 1
     write_emitter(out_hdl, &emitter)
+    ttl_out += 1
 
-    fmt.println(ttl_bits / 8, ":", ttl_hdr / 8)
+    fmt.print(ttl_in, "=>", ttl_out, "(")
+    fmt.println(f32(ttl_out) / f32(ttl_in) * 100, "%)")
 }
 
 write_emitter :: proc(hdl: os.Handle, emitter: ^Emitter) -> bool {
@@ -121,7 +118,7 @@ consumer_main :: proc(in_hdl: os.Handle, out_hdl: os.Handle) {
     consumer := Consumer{}
 
     // keep track of the expected bits written/read
-    ttl_hdr, ttl_bits: int
+    ttl_in, ttl_out: int
 
     // loop through the input file 1 page* at a time (or as much as the consumer can take)
     page: [4096]u8 // Read pagewise
@@ -130,6 +127,7 @@ consumer_main :: proc(in_hdl: os.Handle, out_hdl: os.Handle) {
         // get input
         bytes_read, in_err = os.read(in_hdl, consumer.buf[consumer.size:])
         if bytes_read == 0 { break }
+        ttl_in += bytes_read
 
         // reinit the consumer
         consumer.size += bytes_read
@@ -139,31 +137,24 @@ consumer_main :: proc(in_hdl: os.Handle, out_hdl: os.Handle) {
         // construct our block structure from input
         block = consume_blocks(&consumer)
 
-        _, t_hdr := size_blocks(block)
-        ttl_hdr += t_hdr
-
         // then we can output our consumed bytes
-        t_bits := 0
         for {
             bytes_written, block = output_blocks(&page, block)
             ok := write_page(out_hdl, &page, bytes_written)
-            if !ok { return }
-            t_bits += 8 * bytes_written
+            ttl_out += bytes_written
 
+            if !ok { return }
             if block == nil { break }
         }
 
         // check if we need to account for our rollback
-        if !consumer.ok {
-            for byte, i in consumer.buf[consumer.posn:consumer.size] {
-                consumer.buf[i] = byte
-            }
-            consumer.size = consumer.size - consumer.posn
+        for byte, i in consumer.buf[consumer.posn:consumer.size] {
+            consumer.buf[i] = byte
         }
-        
-        ttl_bits += t_bits
+        consumer.size = consumer.size - consumer.posn
     }
-    fmt.println(ttl_bits / 8, ":", ttl_hdr / 8)
+    fmt.print(ttl_in, "=>", ttl_out, "(")
+    fmt.println(f32(ttl_out) / f32(ttl_in) * 100, "%)")
 }
 
 write_page :: proc(hdl: os.Handle, page: ^[4096]u8, size: int) -> bool {
